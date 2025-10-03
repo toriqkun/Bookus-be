@@ -1,15 +1,106 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
-generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
-}
-
+// prisma/schema.prisma
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  PROVIDER
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELED
+  RESCHEDULED
+  COMPLETED
+}
+
+/*
+  Models:
+  - User: auth/profile (user atau penyedia)
+  - Service: representasi buku/layanan (disediakan oleh provider)
+  - Slot: jadwal ketersediaan untuk sebuah service (start/end)
+  - Booking: pemesanan slot oleh user (1:1 -> slot)
+*/
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String?  
+  name      String?
+  phone     String?
+  avatarUrl String?
+  role      Role      @default(USER)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  services  Service[]  @relation("ProviderServices")
+  bookings  Booking[]  @relation("UserBookings")
+}
+
+model Service {
+  id           String    @id @default(uuid())
+  providerId   String
+  title        String
+  author       String?
+  isbn         String?
+  description  String?
+  coverUrl     String?
+  durationDays Int?
+  price        Float?
+  copies       Int         @default(1)
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  provider User     @relation("ProviderServices", fields: [providerId], references: [id])
+  slots    Slot[]
+  bookings Booking[]
+
+  @@index([providerId])
+  @@index([title])
+}
+
+
+model Slot {
+  id         String   @id @default(uuid())
+  serviceId  String
+  startTime  DateTime
+  endTime    DateTime
+  isBooked   Boolean  @default(false)
+  isCancelled Boolean @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  service Service @relation(fields: [serviceId], references: [id])
+  booking Booking? 
+
+  @@index([serviceId, startTime, endTime])
+  @@index([startTime])
+}
+
+model Booking {
+  id         String        @id @default(uuid())
+  userId     String
+  serviceId  String
+  slotId     String        @unique
+  status     BookingStatus @default(PENDING)
+  notes      String?
+  cancelReason String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  user    User    @relation("UserBookings", fields: [userId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+  slot    Slot    @relation(fields: [slotId], references: [id])
+
+  @@index([userId])
+  @@index([serviceId])
 }
