@@ -1,38 +1,28 @@
 import express from "express";
-import { PrismaClient } from "@prisma/client";
+import swaggerUi from "swagger-ui-express";
+import YAML from "yamljs";
+import path from "path";
+import cookieParser from "cookie-parser";
 
-const prisma = new PrismaClient();
+import booksRouter from "./routes/books";
+import usersRouter from "./routes/auth";
+import bookingsRouter from "./routes/booking";
+
 const app = express();
-
 app.use(express.json());
 
-const api = express.Router();
+app.use(cookieParser());
 
-api.get("/books", async (req, res) => {
-  const books = await prisma.service.findMany({
-    include: {
-      provider: true,
-      slots: true,
-    },
-  });
-  res.json(books);
-});
+const swaggerPath = path.resolve(process.cwd(), "swagger.yaml");
+const swaggerDocument = YAML.load(swaggerPath);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-api.get("/users", async (req, res) => {
-  const users = await prisma.user.findMany();
-  res.json(users);
-});
-
-api.get("/bookings", async (req, res) => {
-  const bookings = await prisma.booking.findMany({
-    include: { user: true, service: true, slot: true },
-  });
-  res.json(bookings);
-});
-
-app.use("/api/v1", api);
+app.use("/api/v1/books", booksRouter);
+app.use("/api/v1/auth", usersRouter);
+app.use("/api/v1/bookings", bookingsRouter);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
+  console.log(`📖 Swagger Docs at http://localhost:${PORT}/api-docs`);
 });

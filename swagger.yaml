@@ -1,0 +1,120 @@
+openapi: 3.0.0
+info:
+  title: Bookus API
+  version: 1.0.0
+  description: API documentation for Bookus backend
+
+servers:
+  - url: http://localhost:3000
+
+paths:
+  /api/v1/auth/register:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Naruto Uzumaki
+                email:
+                  type: string
+                  example: naruto@gmail.com
+                password:
+                  type: string
+                  example: 123456
+      responses:
+        "201":
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Registrasi berhasil
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: 7f6b9c9d-8f23-4b65-a29f-5d3b9c7e4e12
+                      email:
+                        type: string
+                        example: naruto@gmail.com
+                      role:
+                        type: string
+                        example: USER
+        "400":
+          description: Bad Request (validation error or email already used)
+        "500":
+          description: Internal Server Error
+
+  /api/v1/auth/login:
+    post:
+      summary: Login user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: naruto@gmail.com
+                password:
+                  type: string
+                  example: 123456
+      responses:
+        "200":
+          description: Login success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Login berhasil
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: 7f6b9c9d-8f23-4b65-a29f-5d3b9c7e4e12
+                      email:
+                        type: string
+                        example: naruto@gmail.com
+                      role:
+                        type: string
+                        example: USER
+        "401":
+          description: Invalid password
+        "404":
+          description: User not found
+        "500":
+          description: Internal Server Error
+
+  /api/v1/auth/logout:
+    post:
+      summary: Logout user
+      tags: [Auth]
+      responses:
+        "200":
+          description: Logout success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logout berhasil
