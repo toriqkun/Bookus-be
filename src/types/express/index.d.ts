@@ -8,8 +8,10 @@ declare global {
         role: string;
         email?: string;
       };
+      file?: Express.Multer.File;
+      files?: Express.Multer.File[];
     }
   }
 }
 
-export {}; // penting! biar dianggap module dan dievaluasi
+export {};

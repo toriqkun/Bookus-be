@@ -34,7 +34,7 @@ async function main() {
         isbn: "9786020314112",
         description:
           "Petualangan Raib, Seli, dan Ali ke Klan Matahari yang penuh bahaya.",
-        coverUrl: "/uploads/book/bulan.jpeg",
+        coverImage: "/uploads/book/bulan.jpeg",
         durationDays: 7,
         price: 0,
         copies: 3,
@@ -46,7 +46,7 @@ async function main() {
         isbn: "9789793062797",
         description:
           "Kisah inspiratif anak-anak Belitung yang penuh perjuangan dalam pendidikan.",
-        coverUrl: "/uploads/book/laskar-pelangi.jpg",
+        coverImage: "/uploads/book/laskar-pelangi.jpg",
         durationDays: 10,
         price: 0,
         copies: 5,
@@ -58,7 +58,7 @@ async function main() {
         isbn: "9780132350884",
         description:
           "Panduan menulis kode yang bersih, rapi, dan maintainable.",
-        coverUrl: "/uploads/book/cleancode.jpg",
+        coverImage: "/uploads/book/cleancode.jpg",
         durationDays: 14,
         price: 0,
         copies: 2,

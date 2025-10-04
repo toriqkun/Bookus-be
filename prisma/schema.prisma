@@ -31,16 +31,16 @@ enum BookingStatus {
 */
 
 model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  password  String?  
-  name      String?
-  phone     String?
-  avatarUrl String?
-  isVerified Boolean   @default(false)
-  role      Role      @default(USER)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id          String    @id @default(uuid())
+  email       String    @unique
+  password    String?  
+  name        String?
+  phone       String?
+  avatarImage String?
+  isVerified  Boolean   @default(false)
+  role        Role      @default(USER)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   services  Service[]  @relation("ProviderServices")
   bookings  Booking[]  @relation("UserBookings")
@@ -55,7 +55,7 @@ model Service {
   author       String?
   isbn         String?
   description  String?
-  coverUrl     String?
+  coverImage   String?
   durationDays Int?
   price        Float?
   copies       Int         @default(1)

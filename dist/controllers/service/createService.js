@@ -11,37 +11,48 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createBook = void 0;
 const client_1 = require("@prisma/client");
-const serviceSchema_1 = require("../../validations/serviceSchema");
 const prisma = new client_1.PrismaClient();
-// Admin menambahkan buku
 const createBook = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { error, value } = serviceSchema_1.createBookSchema.validate(req.body, {
-            abortEarly: false,
-        });
-        if (error) {
-            return res.status(400).json({
-                message: "Validasi gagal",
-                errors: error.details.map((d) => d.message),
-            });
-        }
         const user = req.user;
         if (!user || user.role !== "ADMIN") {
             return res
                 .status(403)
                 .json({ message: "Hanya admin yang bisa menambahkan buku" });
         }
+        const { title, author, isbn, description, durationDays, price, copies, isActive, } = req.body;
+        if (!title || !author || !price) {
+            return res
+                .status(400)
+                .json({ message: "Field title, author, dan price wajib diisi" });
+        }
+        const coverImage = req.file ? `/uploads/book/${req.file.filename}` : null;
+        const bookData = {
+            title,
+            author,
+            isbn: isbn || null,
+            description: description || null,
+            durationDays: durationDays ? Number(durationDays) : null,
+            price: price ? Number(price) : null,
+            copies: copies ? Number(copies) : 1,
+            isActive: isActive === "false" ? false : true,
+            coverImage,
+            providerId: user.id,
+        };
         const newBook = yield prisma.service.create({
-            data: value,
+            data: bookData,
         });
-        res.status(201).json({
+        return res.status(201).json({
             message: "Buku berhasil ditambahkan",
             book: newBook,
         });
     }
     catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Internal server error" });
+        console.error("❌ ERROR createBook:", err);
+        return res.status(500).json({
+            message: "Internal server error",
+            error: err.message,
+        });
     }
 });
 exports.createBook = createBook;
