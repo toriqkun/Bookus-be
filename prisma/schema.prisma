@@ -37,12 +37,15 @@ model User {
   name      String?
   phone     String?
   avatarUrl String?
+  isVerified Boolean   @default(false)
   role      Role      @default(USER)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
   services  Service[]  @relation("ProviderServices")
   bookings  Booking[]  @relation("UserBookings")
+
+    tokens    VerificationToken[]
 }
 
 model Service {
@@ -103,4 +106,15 @@ model Booking {
 
   @@index([userId])
   @@index([serviceId])
+}
+
+
+model VerificationToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id])
 }

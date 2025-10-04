@@ -4,7 +4,7 @@ import YAML from "yamljs";
 import path from "path";
 import cookieParser from "cookie-parser";
 
-import booksRouter from "./routes/books";
+import booksRouter from "./routes/service";
 import usersRouter from "./routes/auth";
 import bookingsRouter from "./routes/booking";
 
