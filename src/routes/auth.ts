@@ -15,4 +15,9 @@ router.post("/login", login);
 router.post("/logout", logout);
 router.get("/users", authenticate, authorize("ADMIN"), getUsers);
 
+router.get("/me", authenticate, (req, res) => {
+  const user = (req as any).user;
+  res.json({ user });
+});
+
 export default router;
