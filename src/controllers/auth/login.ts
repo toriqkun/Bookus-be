@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 
 const loginSchema = Joi.object({
   email: Joi.string().email().required(),
-  password: Joi.string().min(8).required(),
+  password: Joi.string().min(6).required(),
 });
 
 export const login = async (req: Request, res: Response) => {
@@ -26,10 +26,13 @@ export const login = async (req: Request, res: Response) => {
     if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
 
     const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) return res.status(401).json({ message: "Password salah" });
+    if (!validPassword)
+      return res.status(401).json({ message: "Password salah" });
 
     if (!user.isVerified) {
-      return res.status(403).json({ message: "Email belum diverifikasi, silakan cek inbox Anda." });
+      return res
+        .status(403)
+        .json({ message: "Email belum diverifikasi, silakan cek inbox Anda." });
     }
 
     const token = generateToken({ id: user.id, role: user.role });

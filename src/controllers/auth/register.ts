@@ -8,10 +8,23 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const registerSchema = Joi.object({
-  name: Joi.string().min(4).max(50).required().messages({ "string.empty": "Fullname is required", "string.min": "Fullname minimum 4-20 characters", "string.max": "Fullname minimum 4-20 characters" }),
-  email: Joi.string().email().required().messages({ "string.empty": "Email is required", "string.email": "Please enter a valid email address" }),
-  password: Joi.string().min(8).required().messages({ "string.empty": "Password is required", "string.min": "Password minimum 8 characters" }),
-  confirmPassword: Joi.any().valid(Joi.ref("password")).required().messages({ "any.only": "Passwords do not match", "any.required": "Confirm password is required" }),
+  name: Joi.string().min(4).max(50).required().messages({
+    "string.empty": "Fullname is required",
+    "string.min": "Fullname minimum 4-20 characters",
+    "string.max": "Fullname minimum 4-20 characters",
+  }),
+  email: Joi.string().email().required().messages({
+    "string.empty": "Email is required",
+    "string.email": "Please enter a valid email address",
+  }),
+  password: Joi.string().min(6).required().messages({
+    "string.empty": "Password is required",
+    "string.min": "Password minimum 8 characters",
+  }),
+  confirmPassword: Joi.any().valid(Joi.ref("password")).required().messages({
+    "any.only": "Passwords do not match",
+    "any.required": "Confirm password is required",
+  }),
 });
 
 const transporter = nodemailer.createTransport({
@@ -82,6 +95,7 @@ export const register = async (req: Request, res: Response) => {
         role: newUser.role,
       },
     });
+    console.log(`📧 Verification email sent to ${email}`);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Internal server error" });
