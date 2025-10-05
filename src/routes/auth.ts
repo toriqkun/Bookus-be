@@ -47,4 +47,9 @@ router.post("/cleanup", async (req, res) => {
   }
 });
 
+router.get("/me", authenticate, (req, res) => {
+  const user = (req as any).user;
+  res.json({ user });
+});
+
 export default router;
