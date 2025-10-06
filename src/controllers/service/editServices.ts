@@ -23,14 +23,36 @@ export const updateBook = async (req: Request, res: Response) => {
       price,
       copies,
       isActive,
+      totalPages,
+      genre,
     } = req.body;
 
-    const existingBook = await prisma.service.findUnique({
-      where: { id },
-    });
-
+    const existingBook = await prisma.service.findUnique({ where: { id } });
     if (!existingBook) {
       return res.status(404).json({ message: "Buku tidak ditemukan" });
+    }
+
+    // 📌 Parse genre (bisa string JSON atau array)
+    let genreValue: string | null = existingBook.genre;
+    if (genre) {
+      if (Array.isArray(genre)) {
+        if (genre.length > 3)
+          return res.status(400).json({ message: "Genre maksimal 3 item" });
+        genreValue = genre.join(", ");
+      } else if (typeof genre === "string") {
+        try {
+          const parsed = JSON.parse(genre);
+          if (Array.isArray(parsed)) {
+            if (parsed.length > 3)
+              return res.status(400).json({ message: "Genre maksimal 3 item" });
+            genreValue = parsed.join(", ");
+          } else {
+            genreValue = genre;
+          }
+        } catch {
+          genreValue = genre;
+        }
+      }
     }
 
     const coverImage = req.file
@@ -49,6 +71,8 @@ export const updateBook = async (req: Request, res: Response) => {
           : existingBook.durationDays,
         price: price ? Number(price) : existingBook.price,
         copies: copies ? Number(copies) : existingBook.copies,
+        totalPages: totalPages ? Number(totalPages) : existingBook.totalPages,
+        genre: genreValue,
         isActive:
           typeof isActive !== "undefined"
             ? isActive === "false"
@@ -60,11 +84,11 @@ export const updateBook = async (req: Request, res: Response) => {
     });
 
     return res.status(200).json({
-      message: "Buku berhasil diperbarui",
+      message: "✅ Buku berhasil diperbarui",
       book: updatedBook,
     });
   } catch (err: any) {
-    console.error("ERROR updateBook:", err);
+    console.error("❌ ERROR updateBook:", err);
     return res.status(500).json({
       message: "Internal server error",
       error: err.message,

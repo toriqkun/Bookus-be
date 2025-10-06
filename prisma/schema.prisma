@@ -48,16 +48,18 @@ model User {
 }
 
 model Service {
-  id           String    @id @default(uuid())
+  id           String      @id @default(uuid())
   providerId   String
   title        String
   author       String?
-  isbn         String?
+  isbn         String?     @unique
   description  String?
   coverImage   String?
   durationDays Int?
   price        Float?
   copies       Int         @default(1)
+  totalPages   Int? 
+  genre        String?
   isActive     Boolean     @default(true)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -68,7 +70,9 @@ model Service {
 
   @@index([providerId])
   @@index([title])
+
 }
+
 
 
 model Slot {

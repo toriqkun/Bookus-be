@@ -17,7 +17,7 @@ const registerSchema = Joi.object({
     "string.empty": "Email is required",
     "string.email": "Please enter a valid email address",
   }),
-  password: Joi.string().min(6).required().messages({
+  password: Joi.string().min(8).required().messages({
     "string.empty": "Password is required",
     "string.min": "Password minimum 8 characters",
   }),
@@ -33,6 +33,14 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+});
+
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("SMTP connection failed:", error);
+  } else {
+    console.log("SMTP server is ready to take messages:", success);
+  }
 });
 
 export const register = async (req: Request, res: Response) => {

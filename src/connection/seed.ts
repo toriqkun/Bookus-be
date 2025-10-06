@@ -7,8 +7,10 @@ const prisma = new PrismaClient();
 async function main() {
   const hashedPassword = await bcrypt.hash("123456", 10);
 
-  const admin = await prisma.user.create({
-    data: {
+  const admin = await prisma.user.upsert({
+    where: { email: "bookus@library.com" },
+    update: {},
+    create: {
       email: "bookus@library.com",
       password: hashedPassword,
       name: "Central Library",
@@ -16,8 +18,10 @@ async function main() {
     },
   });
 
-  const user = await prisma.user.create({
-    data: {
+  const user = await prisma.user.upsert({
+    where: { email: "madara@gmail.com" },
+    update: {},
+    create: {
       email: "madara@gmail.com",
       password: hashedPassword,
       name: "Madara Uchiha",
@@ -31,6 +35,8 @@ async function main() {
         providerId: admin.id,
         title: "Bulan",
         author: "Tere Liye",
+        genre: "Fiction",
+        totalPages: 448,
         isbn: "9786020314112",
         description:
           "Petualangan Raib, Seli, dan Ali ke Klan Matahari yang penuh bahaya.",
@@ -43,6 +49,8 @@ async function main() {
         providerId: admin.id,
         title: "Laskar Pelangi",
         author: "Andrea Hirata",
+        genre: "Inspiration",
+        totalPages: 432,
         isbn: "9789793062797",
         description:
           "Kisah inspiratif anak-anak Belitung yang penuh perjuangan dalam pendidikan.",
@@ -55,6 +63,8 @@ async function main() {
         providerId: admin.id,
         title: "Clean Code",
         author: "Robert C. Martin",
+        genre: "Programming",
+        totalPages: 464,
         isbn: "9780132350884",
         description:
           "Panduan menulis kode yang bersih, rapi, dan maintainable.",
@@ -64,6 +74,7 @@ async function main() {
         copies: 2,
       },
     ],
+    skipDuplicates: true,
   });
 
   const book = await prisma.service.findFirst({
@@ -71,30 +82,49 @@ async function main() {
   });
 
   if (book) {
-    const slot = await prisma.slot.create({
-      data: {
-        serviceId: book.id,
-        startTime: new Date("2025-10-05T09:00:00.000Z"),
-        endTime: new Date("2025-10-12T09:00:00.000Z"),
-      },
+    const existingSlot = await prisma.slot.findFirst({
+      where: { serviceId: book.id },
     });
 
-    await prisma.booking.create({
-      data: {
+    let slot = existingSlot;
+    if (!existingSlot) {
+      slot = await prisma.slot.create({
+        data: {
+          serviceId: book.id,
+          startTime: new Date("2025-10-05T09:00:00.000Z"),
+          endTime: new Date("2025-10-12T09:00:00.000Z"),
+        },
+      });
+    }
+
+    const existingBooking = await prisma.booking.findFirst({
+      where: {
         userId: user.id,
         serviceId: book.id,
-        slotId: slot.id,
-        status: BookingStatus.PENDING,
+        slotId: slot!.id,
       },
     });
+
+    if (!existingBooking) {
+      await prisma.booking.create({
+        data: {
+          userId: user.id,
+          serviceId: book.id,
+          slotId: slot!.id,
+          status: BookingStatus.PENDING,
+        },
+      });
+    }
   }
 
-  console.log("✅ Seeder selesai, data awal masuk ke database.");
+  console.log(
+    "✅ Seeder selesai, data awal masuk ke database tanpa duplikasi."
+  );
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error("Error seeding:", e);
     process.exit(1);
   })
   .finally(async () => {

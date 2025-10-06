@@ -14,7 +14,7 @@ import booksRouter from "./routes/service";
 import usersRouter from "./routes/auth";
 import bookingsRouter from "./routes/booking";
 
-dotenv.config();
+// dotenv.config();
 const app = express();
 
 app.use(express.json());

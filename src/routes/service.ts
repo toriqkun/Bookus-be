@@ -36,6 +36,11 @@ router.put(
 
 router.delete("/services/:id", authenticate, authorize("ADMIN"), deleteBook);
 router.patch("/services/:id", authenticate, authorize("ADMIN"), softDeleteBook);
-router.patch("/services/:id", authenticate, authorize("ADMIN"), restoreBook);
+router.patch(
+  "/services/restore/:id",
+  authenticate,
+  authorize("ADMIN"),
+  restoreBook
+);
 
 export default router;
