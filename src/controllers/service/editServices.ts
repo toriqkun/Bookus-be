@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+import { supabase } from "../../utils/supabase";
 
 const prisma = new PrismaClient();
 
@@ -7,11 +8,10 @@ export const updateBook = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
 
-    // Cek role admin
     if (!user || user.role !== "ADMIN") {
-      return res.status(403).json({
-        message: "Hanya admin yang bisa mengedit buku",
-      });
+      return res
+        .status(403)
+        .json({ message: "Hanya admin yang bisa mengedit buku" });
     }
 
     const { id } = req.params;
@@ -28,13 +28,11 @@ export const updateBook = async (req: Request, res: Response) => {
       genre,
     } = req.body;
 
-    // Cek buku eksisting
     const existingBook = await prisma.service.findUnique({ where: { id } });
     if (!existingBook) {
       return res.status(404).json({ message: "Buku tidak ditemukan" });
     }
 
-    // Handle genre input (array, JSON string, atau plain string)
     let genreValue: string | null = existingBook.genre;
     if (genre) {
       if (Array.isArray(genre)) {
@@ -57,12 +55,45 @@ export const updateBook = async (req: Request, res: Response) => {
       }
     }
 
-    // Handle cover image
-    const coverImage = req.file
-      ? `/uploads/book/${req.file.filename}`
-      : existingBook.coverImage;
+    let coverImage = existingBook.coverImage;
+    if (req.file) {
+      const fileName = `books/${Date.now()}-${req.file.originalname}`;
 
-    // Update buku
+      if (
+        existingBook.coverImage &&
+        existingBook.coverImage.includes("supabase.co")
+      ) {
+        const oldPath = existingBook.coverImage.split("/bookus-images/")[1];
+        await supabase.storage
+          .from(process.env.SUPABASE_BUCKET!)
+          .remove([oldPath])
+          .catch(() =>
+            console.warn("⚠️ Gagal hapus cover lama, lanjut upload baru")
+          );
+      }
+
+      const { error: uploadError } = await supabase.storage
+        .from(process.env.SUPABASE_BUCKET!)
+        .upload(fileName, req.file.buffer, {
+          contentType: req.file.mimetype,
+        });
+
+      if (uploadError) {
+        console.error("❌ Gagal upload cover baru:", uploadError.message);
+        return res.status(500).json({
+          message: "Gagal mengunggah cover baru ke Supabase",
+          error: uploadError.message,
+        });
+      }
+
+      const { data: publicUrl } = supabase.storage
+        .from(process.env.SUPABASE_BUCKET!)
+        .getPublicUrl(fileName);
+
+      coverImage = publicUrl.publicUrl;
+      console.log("🪣 Cover baru diupload ke:", coverImage);
+    }
+
     const updatedBook = await prisma.service.update({
       where: { id },
       data: {

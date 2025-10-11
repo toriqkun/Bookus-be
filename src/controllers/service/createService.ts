@@ -1,20 +1,20 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import { createBookSchema } from "../../validations/serviceSchema";
+import { supabase } from "../../utils/supabase";
 
 const prisma = new PrismaClient();
 
 export const createBook = async (req: Request, res: Response) => {
   console.log("📸 Uploaded file:", req.file);
   console.log("📦 req.body:", req.body);
-  // console.log("🖼 req.file:", req.file);
 
   try {
     const user = (req as any).user;
     if (!user || user.role !== "ADMIN") {
-      return res
-        .status(403)
-        .json({ message: "Hanya admin yang bisa menambahkan buku" });
+      return res.status(403).json({
+        message: "Hanya admin yang bisa menambahkan buku",
+      });
     }
 
     const { error } = createBookSchema.validate(req.body, {
@@ -40,7 +40,6 @@ export const createBook = async (req: Request, res: Response) => {
       genre,
     } = req.body;
 
-    // 📌 Parse genre (bisa string JSON atau array)
     let genreValue: string | null = null;
     if (genre) {
       if (Array.isArray(genre)) {
@@ -63,7 +62,30 @@ export const createBook = async (req: Request, res: Response) => {
       }
     }
 
-    const coverImage = req.file ? `/uploads/book/${req.file.filename}` : null;
+    let coverImage: string | null = null;
+    if (req.file) {
+      const fileName = `books/${Date.now()}-${req.file.originalname}`;
+      const { error: uploadError } = await supabase.storage
+        .from(process.env.SUPABASE_BUCKET!)
+        .upload(fileName, req.file.buffer, {
+          contentType: req.file.mimetype,
+        });
+
+      if (uploadError) {
+        console.error("❌ Upload gagal:", uploadError.message);
+        return res.status(500).json({
+          message: "Gagal mengunggah cover ke Supabase",
+          error: uploadError.message,
+        });
+      }
+
+      const { data: publicUrl } = supabase.storage
+        .from(process.env.SUPABASE_BUCKET!)
+        .getPublicUrl(fileName);
+
+      coverImage = publicUrl.publicUrl;
+      console.log("🪣 Supabase Upload URL:", coverImage);
+    }
 
     const newBook = await prisma.service.create({
       data: {
