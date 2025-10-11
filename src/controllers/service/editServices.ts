@@ -7,10 +7,11 @@ export const updateBook = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
 
+    // Cek role admin
     if (!user || user.role !== "ADMIN") {
-      return res
-        .status(403)
-        .json({ message: "Hanya admin yang bisa mengedit buku" });
+      return res.status(403).json({
+        message: "Hanya admin yang bisa mengedit buku",
+      });
     }
 
     const { id } = req.params;
@@ -27,12 +28,13 @@ export const updateBook = async (req: Request, res: Response) => {
       genre,
     } = req.body;
 
+    // Cek buku eksisting
     const existingBook = await prisma.service.findUnique({ where: { id } });
     if (!existingBook) {
       return res.status(404).json({ message: "Buku tidak ditemukan" });
     }
 
-    // 📌 Parse genre (bisa string JSON atau array)
+    // Handle genre input (array, JSON string, atau plain string)
     let genreValue: string | null = existingBook.genre;
     if (genre) {
       if (Array.isArray(genre)) {
@@ -55,10 +57,12 @@ export const updateBook = async (req: Request, res: Response) => {
       }
     }
 
+    // Handle cover image
     const coverImage = req.file
       ? `/uploads/book/${req.file.filename}`
       : existingBook.coverImage;
 
+    // Update buku
     const updatedBook = await prisma.service.update({
       where: { id },
       data: {

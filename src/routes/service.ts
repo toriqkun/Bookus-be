@@ -8,7 +8,6 @@ import { authenticate } from "../middleware/authenticate";
 import { authorize } from "../middleware/authorize";
 import { upload } from "../middleware/multer";
 
-import multer from "multer";
 import { deleteBook } from "../controllers/service/deleteService";
 import { softDeleteBook } from "../controllers/service/softDeleteService";
 import { restoreBook } from "../controllers/service/restoreService";

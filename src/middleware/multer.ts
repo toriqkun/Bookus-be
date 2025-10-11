@@ -15,8 +15,9 @@ const storage = multer.diskStorage({
     if (file.fieldname === "cover") folder = "book";
     else if (file.fieldname === "profileImage") folder = "profile";
 
-    const dest = path.resolve(__dirname, `../uploads/${folder}`);
+    const dest = path.resolve(process.cwd(), `uploads/${folder}`);
     ensureDir(dest);
+    console.log("📁 File akan disimpan ke:", dest);
     cb(null, dest);
   },
   filename: (req, file, cb) => {

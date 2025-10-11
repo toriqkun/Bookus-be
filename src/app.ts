@@ -20,6 +20,8 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 const corsOptions = {
   origin: process.env.FRONTEND_URL || "http://localhost:3000",
   credentials: true,
@@ -30,6 +32,8 @@ app.use(cors(corsOptions));
 
 const swaggerPath = path.resolve(process.cwd(), "swagger.yaml");
 const swaggerDocument = YAML.load(swaggerPath);
+app.use(express.urlencoded({ extended: true }));
+
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.get("/api/v1/health", (req, res) => {

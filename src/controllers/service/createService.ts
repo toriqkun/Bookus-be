@@ -5,6 +5,10 @@ import { createBookSchema } from "../../validations/serviceSchema";
 const prisma = new PrismaClient();
 
 export const createBook = async (req: Request, res: Response) => {
+  console.log("📸 Uploaded file:", req.file);
+  console.log("📦 req.body:", req.body);
+  // console.log("🖼 req.file:", req.file);
+
   try {
     const user = (req as any).user;
     if (!user || user.role !== "ADMIN") {
