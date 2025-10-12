@@ -11,25 +11,19 @@ import { upload } from "../middleware/multer";
 import { deleteBook } from "../controllers/service/deleteService";
 import { softDeleteBook } from "../controllers/service/softDeleteService";
 import { restoreBook } from "../controllers/service/restoreService";
+import { getServiceById } from "../controllers/service/getServiceById";
 
 const prisma = new PrismaClient();
 const router = Router();
 
 router.get("/services", authenticate, getAllServices);
+router.get("/services/:id", authenticate, getServiceById);
 
 router.post(
   "/services",
   authenticate,
   authorize("ADMIN"),
-  (req, res, next) => {
-    console.log("🚀 Incoming POST /services");
-    next();
-  },
   upload.single("cover"),
-  (req, res, next) => {
-    console.log("🎯 After Multer:", req.file);
-    next();
-  },
   createBook
 );
 

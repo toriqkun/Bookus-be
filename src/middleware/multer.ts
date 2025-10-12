@@ -11,9 +11,9 @@ export const upload = multer({
       file?.originalname,
       file?.mimetype
     );
-    const allowed = ["image/jpeg", "image/png", "image/jpg"];
+    const allowed = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
     if (!allowed.includes(file.mimetype)) {
-      cb(new Error("Hanya file JPG/PNG yang diizinkan"));
+      cb(new Error("Hanya file gambar yang diizinkan"));
     } else {
       cb(null, true);
     }
