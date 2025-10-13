@@ -17,7 +17,7 @@ export const createBookSchema = Joi.object({
   title: Joi.string().min(3).max(100).required(),
   author: Joi.string().allow(null, ""),
   isbn: Joi.string().allow(null, ""),
-  description: Joi.string().max(200).allow(null, ""),
+  description: Joi.string().max(1000).allow(null, ""),
   coverUrl: Joi.string().uri().allow(null, ""),
   durationDays: Joi.number().integer().min(1).allow(null),
   price: Joi.number().min(0).allow(null),

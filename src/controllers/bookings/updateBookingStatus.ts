@@ -16,15 +16,15 @@ export const updateBookingStatus = async (req: Request, res: Response) => {
       });
     }
 
-    if (!id) {
-      return res.status(400).json({ message: "Booking ID wajib diisi" });
+    if (!id || !status) {
+      return res.status(400).json({
+        message: "Booking ID dan status wajib diisi",
+      });
     }
 
-    if (!status) {
-      return res.status(400).json({ message: "Field status wajib diisi" });
-    }
     const allowedStatuses = [
       BookingStatus.CONFIRMED,
+      BookingStatus.BORROWED,
       BookingStatus.CANCELED,
       BookingStatus.RESCHEDULED,
       BookingStatus.COMPLETED,
@@ -40,7 +40,11 @@ export const updateBookingStatus = async (req: Request, res: Response) => {
 
     const booking = await prisma.booking.findUnique({
       where: { id },
-      include: { slot: true, service: true, user: true },
+      include: {
+        user: true,
+        service: true,
+        slot: true,
+      },
     });
 
     if (!booking) {
@@ -56,19 +60,122 @@ export const updateBookingStatus = async (req: Request, res: Response) => {
       });
     }
 
-    const updatedBooking = await prisma.booking.update({
-      where: { id },
-      data: {
-        status,
-        cancelReason: status === BookingStatus.CANCELED ? cancelReason : null,
-        updatedAt: new Date(),
-      },
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-        service: { select: { id: true, title: true } },
-        slot: { select: { id: true, startTime: true, endTime: true } },
-      },
-    });
+    if (
+      status === BookingStatus.CONFIRMED &&
+      booking.status === BookingStatus.PENDING
+    ) {
+      await prisma.slot.update({
+        where: { id: booking.slotId },
+        data: { isBooked: true, isCancelled: false },
+      });
+
+      const updated = await prisma.booking.update({
+        where: { id },
+        data: { status: BookingStatus.CONFIRMED, updatedAt: new Date() },
+      });
+
+      return res.status(200).json({
+        message:
+          "✅ Booking berhasil dikonfirmasi, user dapat mengambil buku di perpustakaan",
+        data: updated,
+      });
+    }
+
+    if (
+      status === BookingStatus.BORROWED &&
+      booking.status === BookingStatus.CONFIRMED
+    ) {
+      const updated = await prisma.booking.update({
+        where: { id },
+        data: {
+          status: BookingStatus.BORROWED,
+          updatedAt: new Date(),
+        },
+      });
+
+      return res.status(200).json({
+        message: "📚 Buku telah diambil oleh user (status: BORROWED)",
+        data: updated,
+      });
+    }
+
+    if (
+      status === BookingStatus.COMPLETED &&
+      booking.status === BookingStatus.BORROWED
+    ) {
+      const now = new Date();
+      const isLate = now > booking.slot.endTime;
+
+      await prisma.service.update({
+        where: { id: booking.serviceId },
+        data: { copies: { increment: 1 } },
+      });
+
+      await prisma.slot.update({
+        where: { id: booking.slotId },
+        data: { isBooked: false, isCancelled: false },
+      });
+
+      const updatedBooking = await prisma.booking.update({
+        where: { id },
+        data: {
+          status: BookingStatus.COMPLETED,
+          returnedAt: now,
+          isLate,
+          updatedAt: now,
+        },
+        include: {
+          service: { select: { title: true, price: true } },
+          slot: { select: { startTime: true, endTime: true } },
+          user: { select: { id: true, name: true, email: true } },
+        },
+      });
+
+      let penalty = 0;
+      if (isLate && updatedBooking.service?.price) {
+        const lateDays = Math.ceil(
+          (now.getTime() - booking.slot.endTime.getTime()) /
+            (1000 * 60 * 60 * 24)
+        );
+        const dailyPenalty = updatedBooking.service.price * 0.1;
+        penalty = lateDays * dailyPenalty;
+      }
+
+      return res.status(200).json({
+        message: `✅ Buku telah dikembalikan dan booking ditandai selesai${
+          isLate ? " (TERLAMBAT)" : ""
+        }`,
+        data: {
+          ...updatedBooking,
+          penalty,
+        },
+      });
+    }
+
+    if (
+      booking.status === BookingStatus.RESCHEDULED &&
+      status === BookingStatus.CONFIRMED
+    ) {
+      await prisma.slot.update({
+        where: { id: booking.slotId },
+        data: { isBooked: true, isCancelled: false },
+      });
+
+      const updated = await prisma.booking.update({
+        where: { id },
+        data: {
+          status: BookingStatus.CONFIRMED,
+          cancelReason: null,
+          updatedAt: new Date(),
+        },
+      });
+
+      return res.status(200).json({
+        message:
+          "✅ Booking hasil reschedule telah dikonfirmasi kembali oleh admin",
+        data: updated,
+      });
+    }
 
     if (status === BookingStatus.CANCELED) {
       await prisma.service.update({
@@ -80,11 +187,24 @@ export const updateBookingStatus = async (req: Request, res: Response) => {
         where: { id: booking.slotId },
         data: { isCancelled: true, isBooked: false },
       });
+
+      const updated = await prisma.booking.update({
+        where: { id },
+        data: {
+          status: BookingStatus.CANCELED,
+          cancelReason: cancelReason || "Dibatalkan oleh admin",
+          updatedAt: new Date(),
+        },
+      });
+
+      return res.status(200).json({
+        message: "❌ Booking berhasil dibatalkan",
+        data: updated,
+      });
     }
 
-    return res.status(200).json({
-      message: `✅ Status booking berhasil diubah menjadi ${status}`,
-      data: updatedBooking,
+    return res.status(400).json({
+      message: `Transisi status dari ${booking.status} ke ${status} tidak diizinkan`,
     });
   } catch (err: any) {
     console.error("❌ ERROR updateBookingStatus:", err);

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { PrismaClient, BookingStatus } from "@prisma/client";
-import { addDays, differenceInDays, isBefore } from "date-fns";
+import { addDays, isBefore } from "date-fns";
 
 const prisma = new PrismaClient();
 
@@ -12,16 +12,20 @@ export const rescheduleBooking = async (req: Request, res: Response) => {
 
     if (!user || user.role !== "USER") {
       return res.status(403).json({
-        message: "Akses ditolak: hanya user yang dapat mengubah jadwal booking",
+        message:
+          "Akses ditolak: hanya user yang dapat menjadwalkan ulang booking",
       });
+    }
+
+    if (!newStartDate) {
+      return res
+        .status(400)
+        .json({ message: "Tanggal mulai baru wajib diisi" });
     }
 
     const booking = await prisma.booking.findUnique({
       where: { id },
-      include: {
-        service: true,
-        slot: true,
-      },
+      include: { service: true, slot: true },
     });
 
     if (!booking) {
@@ -50,7 +54,13 @@ export const rescheduleBooking = async (req: Request, res: Response) => {
         .json({ message: "Tanggal mulai baru tidak valid" });
     }
 
-    if (!end) {
+    if (end && isNaN(end.getTime())) {
+      return res
+        .status(400)
+        .json({ message: "Tanggal akhir baru tidak valid" });
+    }
+
+    if (!end || isNaN(end.getTime())) {
       if (!booking.service.durationDays) {
         return res.status(400).json({
           message: "Service tidak memiliki durasi peminjaman yang valid",
@@ -119,7 +129,8 @@ export const rescheduleBooking = async (req: Request, res: Response) => {
     });
 
     return res.status(200).json({
-      message: "✅ Booking berhasil dijadwalkan ulang",
+      message:
+        "✅ Booking berhasil dijadwalkan ulang (menunggu konfirmasi admin)",
       data: updatedBooking,
     });
   } catch (err: any) {

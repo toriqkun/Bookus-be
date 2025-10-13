@@ -91,7 +91,7 @@ export const updateBook = async (req: Request, res: Response) => {
         .getPublicUrl(fileName);
 
       coverImage = publicUrl.publicUrl;
-      console.log("🪣 Cover baru diupload ke:", coverImage);
+      // console.log("🪣 Cover baru diupload ke:", coverImage);
     }
 
     const updatedBook = await prisma.service.update({

@@ -6,8 +6,8 @@ import { supabase } from "../../utils/supabase";
 const prisma = new PrismaClient();
 
 export const createBook = async (req: Request, res: Response) => {
-  console.log("📸 Uploaded file:", req.file);
-  console.log("📦 req.body:", req.body);
+  // console.log("📸 Uploaded file:", req.file);
+  // console.log("📦 req.body:", req.body);
 
   try {
     const user = (req as any).user;
@@ -84,7 +84,7 @@ export const createBook = async (req: Request, res: Response) => {
         .getPublicUrl(fileName);
 
       coverImage = publicUrl.publicUrl;
-      console.log("🪣 Supabase Upload URL:", coverImage);
+      // console.log("🪣 Supabase Upload URL:", coverImage);
     }
 
     const newBook = await prisma.service.create({

@@ -1,11 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
+model User {
+  id          String              @id @default(uuid())
+  email       String              @unique
+  password    String?
+  name        String?
+  phone       String?
+  avatarImage String?
+  isVerified  Boolean             @default(false)
+  role        Role                @default(USER)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  bookings    Booking[]           @relation("UserBookings")
+  services    Service[]           @relation("ProviderServices")
+  tokens      VerificationToken[]
+}
+
+model Service {
+  id           String    @id @default(uuid())
+  providerId   String
+  title        String
+  author       String?
+  isbn         String?   @unique
+  description  String?
+  coverImage   String?
+  durationDays Int?
+  price        Float?
+  copies       Int       @default(1)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  genre        String?
+  totalPages   Int?
+  bookings     Booking[]
+  provider     User      @relation("ProviderServices", fields: [providerId], references: [id])
+  slots        Slot[]
+
+  @@index([providerId])
+  @@index([title])
+}
+
+model Slot {
+  id          String   @id @default(uuid())
+  serviceId   String
+  startTime   DateTime
+  endTime     DateTime
+  isBooked    Boolean  @default(false)
+  isCancelled Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  booking     Booking?
+  service     Service  @relation(fields: [serviceId], references: [id])
+
+  @@index([serviceId, startTime, endTime])
+  @@index([startTime])
+}
+
+model Booking {
+  id           String        @id @default(uuid())
+  userId       String
+  serviceId    String
+  slotId       String        @unique
+  status       BookingStatus @default(PENDING)
+  notes        String?
+  cancelReason String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  isLate       Boolean?      @default(false)
+  returnedAt   DateTime?
+  service      Service       @relation(fields: [serviceId], references: [id])
+  slot         Slot          @relation(fields: [slotId], references: [id])
+  user         User          @relation("UserBookings", fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([serviceId])
+}
+
+model VerificationToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 enum Role {
@@ -19,105 +103,5 @@ enum BookingStatus {
   CANCELED
   RESCHEDULED
   COMPLETED
-}
-
-/*
-  Models:
-  - User: auth/profile (user atau penyedia)
-  - Service: representasi buku/layanan (disediakan oleh provider)
-  - Slot: jadwal ketersediaan untuk sebuah service (start/end)
-  - Booking: pemesanan slot oleh user (1:1 -> slot)
-*/
-
-model User {
-  id          String    @id @default(uuid())
-  email       String    @unique
-  password    String?  
-  name        String?
-  phone       String?
-  avatarImage String?
-  isVerified  Boolean   @default(false)
-  role        Role      @default(USER)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  services  Service[]  @relation("ProviderServices")
-  bookings  Booking[]  @relation("UserBookings")
-
-  tokens    VerificationToken[]
-}
-
-model Service {
-  id           String      @id @default(uuid())
-  providerId   String
-  title        String
-  author       String?
-  isbn         String?     @unique
-  description  String?
-  coverImage   String?
-  durationDays Int?
-  price        Float?
-  copies       Int         @default(1)
-  totalPages   Int? 
-  genre        String?
-  isActive     Boolean     @default(true)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  provider User     @relation("ProviderServices", fields: [providerId], references: [id])
-  slots    Slot[]
-  bookings Booking[]
-
-  @@index([providerId])
-  @@index([title])
-
-}
-
-
-
-model Slot {
-  id         String   @id @default(uuid())
-  serviceId  String
-  startTime  DateTime
-  endTime    DateTime
-  isBooked   Boolean  @default(false)
-  isCancelled Boolean @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  service Service @relation(fields: [serviceId], references: [id])
-  booking Booking? 
-
-  @@index([serviceId, startTime, endTime])
-  @@index([startTime])
-}
-
-model Booking {
-  id         String        @id @default(uuid())
-  userId     String
-  serviceId  String
-  slotId     String        @unique
-  status     BookingStatus @default(PENDING)
-  notes      String?
-  cancelReason String?
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
-
-  user    User    @relation("UserBookings", fields: [userId], references: [id])
-  service Service @relation(fields: [serviceId], references: [id])
-  slot    Slot    @relation(fields: [slotId], references: [id])
-
-  @@index([userId])
-  @@index([serviceId])
-}
-
-
-model VerificationToken {
-  id        String   @id @default(uuid())
-  token     String   @unique
-  userId    String
-  createdAt DateTime @default(now())
-  expiresAt DateTime
-
-  user User @relation(fields: [userId], references: [id])
+  BORROWED
 }
