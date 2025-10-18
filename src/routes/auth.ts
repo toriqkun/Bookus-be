@@ -8,6 +8,9 @@ import { cleanupUnverifiedUsers } from "../utils/cleanupUnverifiedUsers";
 import { authenticate } from "../middleware/authenticate";
 import { authorize } from "../middleware/authorize";
 
+import { upload } from "../middleware/multer";
+import { updateProfile } from "../controllers/auth/updateProfile";
+
 const prisma = new PrismaClient();
 const router = Router();
 
@@ -51,5 +54,7 @@ router.get("/me", authenticate, (req, res) => {
   const user = (req as any).user;
   res.json({ user });
 });
+
+router.patch("/profile", authenticate, upload.single("avatar"), updateProfile);
 
 export default router;

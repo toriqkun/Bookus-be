@@ -1,11 +1,19 @@
 openapi: 3.0.0
 info:
-  title: Bookus API
+  title: Slotify API
   version: 1.0.0
-  description: API documentation for Bookus backend
+  description: >
+    API documentation for **Slotify Backend Service**  
+    Built with Express, Prisma, and Supabase.
 
 servers:
   - url: http://localhost:3000
+
+tags:
+  - name: Auth
+    description: Endpoints for authentication and email verification
+  - name: User
+    description: Endpoints for user management and profile updates
 
 paths:
   /api/v1/auth/register:
@@ -27,63 +35,47 @@ paths:
                   example: naruto@gmail.com
                 password:
                   type: string
-                  example: 123456
+                  example: 12345678
                 confirmPassword:
                   type: string
-                  example: 123456
+                  example: 12345678
       responses:
         "201":
-          description: User registered successfully
+          description: User registered successfully and verification email sent
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   message:
-                    type: string
                     example: Registrasi berhasil
                   user:
                     type: object
                     properties:
                       id:
-                        type: string
-                        example: 7f6b9c9d-8f23-4b65-a29f-5d3b9c7e4e12
-                      name:
-                        type: string
-                        example: Naruto Uzumaki
-                      email:
-                        type: string
-                        example: naruto@gmail.com
-                      role:
-                        type: string
-                        example: USER
+                        {
+                          type: string,
+                          example: 7f6b9c9d-8f23-4b65-a29f-5d3b9c7e4e12,
+                        }
+                      name: { type: string, example: Naruto Uzumaki }
+                      email: { type: string, example: naruto@gmail.com }
+                      role: { type: string, example: USER }
         "400":
-          description: Bad Request (validation error or email already used)
+          description: Validation error or email already used
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  message:
-                    type: string
-                    example: Validasi gagal
+                  message: { type: string, example: Validasi gagal }
                   errors:
                     type: array
-                    items:
-                      type: string
+                    items: { type: string }
                     example:
                       - "Email sudah digunakan"
-                      - "Password minimal 6 karakter"
+                      - "Password minimal 8 karakter"
         "500":
           description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Internal server error
 
   /api/v1/auth/login:
     post:
@@ -101,7 +93,7 @@ paths:
                   example: naruto@gmail.com
                 password:
                   type: string
-                  example: 123456
+                  example: 12345678
       responses:
         "200":
           description: Login success
@@ -111,22 +103,24 @@ paths:
                 type: object
                 properties:
                   message:
-                    type: string
                     example: Login berhasil
                   user:
                     type: object
                     properties:
                       id:
-                        type: string
-                        example: 7f6b9c9d-8f23-4b65-a29f-5d3b9c7e4e12
-                      email:
-                        type: string
-                        example: naruto@gmail.com
-                      role:
-                        type: string
-                        example: USER
+                        {
+                          type: string,
+                          example: 7f6b9c9d-8f23-4b65-a29f-5d3b9c7e4e12,
+                        }
+                      email: { type: string, example: naruto@gmail.com }
+                      role: { type: string, example: USER }
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         "401":
           description: Invalid password
+        "403":
+          description: Email not verified
         "404":
           description: User not found
         "500":
@@ -144,6 +138,635 @@ paths:
               schema:
                 type: object
                 properties:
+                  message: { example: Logout berhasil }
+
+  /api/v1/auth/verify:
+    get:
+      summary: Verify user email via token
+      tags: [Auth]
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Verification token from email link
+          example: 9a1b2c3d4e5f6g7h8i9j
+      responses:
+        "200":
+          description: Email verification successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
                   message:
-                    type: string
-                    example: Logout berhasil
+                    { example: Email berhasil diverifikasi, silakan login. }
+        "400":
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { example: Token sudah expired }
+        "500":
+          description: Internal Server Error
+
+  /api/v1/users:
+    get:
+      summary: Get all users (admin only)
+      tags: [User]
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: List of all users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      {
+                        type: string,
+                        example: 7f6b9c9d-8f23-4b65-a29f-5d3b9c7e4e12,
+                      }
+                    name: { type: string, example: Naruto Uzumaki }
+                    email: { type: string, example: naruto@gmail.com }
+                    role: { type: string, example: USER }
+                    isVerified: { type: boolean, example: true }
+        "500":
+          description: Internal Server Error
+
+  /api/v1/users/me:
+    patch:
+      summary: Update user profile
+      tags: [User]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Naruto Uzumaki
+                phone:
+                  type: string
+                  example: "+628123456789"
+                avatar:
+                  type: string
+                  format: binary
+                  description: User avatar image (jpg/png/webp)
+      responses:
+        "200":
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { example: "✅ Profil berhasil diperbarui" }
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        {
+                          type: string,
+                          example: 7f6b9c9d-8f23-4b65-a29f-5d3b9c7e4e12,
+                        }
+                      name: { type: string, example: Naruto Uzumaki }
+                      phone: { type: string, example: "+628123456789" }
+                      email: { type: string, example: naruto@gmail.com }
+                      avatarImage:
+                        {
+                          type: string,
+                          example: https://your-supabase-bucket/avatars/123.jpg,
+                        }
+                      updatedAt:
+                        {
+                          type: string,
+                          format: date-time,
+                          example: 2025-10-18T10:20:30.000Z,
+                        }
+        "400":
+          description: Bad request (invalid data or file)
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal Server Error
+
+  /api/v1/bookings/{id}/cancel:
+    patch:
+      summary: Cancel an existing booking
+      description: >
+        Membatalkan booking yang telah dibuat oleh user.  
+        Hanya user yang memiliki booking tersebut yang dapat melakukan pembatalan.  
+        Booking dengan status `CANCELED` atau `COMPLETED` tidak dapat dibatalkan lagi.
+      tags: [Booking]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID booking yang ingin dibatalkan
+          schema:
+            type: string
+            example: "a6b3c92e-1c5f-47f7-9c2b-ef92a5db67a8"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cancelReason:
+                  type: string
+                  description: Alasan pembatalan booking
+                  example: "Saya ingin menjadwalkan ulang ke tanggal lain"
+      responses:
+        "200":
+          description: Booking berhasil dibatalkan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    example: "✅ Booking berhasil dibatalkan"
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: "a6b3c92e-1c5f-47f7-9c2b-ef92a5db67a8"
+                      status:
+                        type: string
+                        example: "CANCELED"
+                      cancelReason:
+                        type: string
+                        example: "Dibatalkan oleh user"
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        example: "2025-10-18T12:34:56.789Z"
+                      service:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            example: "s3rv1c3-123"
+                          title:
+                            type: string
+                            example: "Sewa Studio Musik"
+                      slot:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            example: "sl0t-456"
+                          startTime:
+                            type: string
+                            example: "2025-10-20T08:00:00.000Z"
+                          endTime:
+                            type: string
+                            example: "2025-10-20T10:00:00.000Z"
+        "400":
+          description: Booking tidak dapat dibatalkan karena statusnya sudah CANCELED atau COMPLETED
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    example: "Booking dengan status COMPLETED tidak bisa dibatalkan"
+        "403":
+          description: Akses ditolak (bukan pemilik booking atau bukan USER role)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    example: "Anda tidak memiliki izin untuk membatalkan booking ini"
+        "404":
+          description: Booking tidak ditemukan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    example: "Booking tidak ditemukan"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    example: "Internal server error"
+
+  /api/v1/bookings:
+    post:
+      summary: Create a new booking
+      description: >
+        Membuat booking baru untuk service (buku).  
+        User wajib login (role: `USER`).  
+        Jika `endDate` tidak diberikan, sistem akan otomatis menghitung tanggal akhir berdasarkan `durationDays` dari service.  
+        Booking tidak bisa dibuat bila service sedang dipinjam atau stoknya kosong.
+      tags: [Booking]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - serviceId
+                - startDate
+              properties:
+                serviceId:
+                  type: string
+                  description: ID service/buku yang ingin dibooking
+                  example: "svc_12345"
+                startDate:
+                  type: string
+                  format: date
+                  description: Tanggal mulai peminjaman (YYYY-MM-DD)
+                  example: "2025-10-20"
+                endDate:
+                  type: string
+                  format: date
+                  description: >
+                    Tanggal akhir peminjaman (opsional).  
+                    Jika tidak diisi, sistem akan otomatis menambahkan `durationDays` dari service.
+                  example: "2025-10-25"
+                notes:
+                  type: string
+                  description: Catatan tambahan dari user
+                  example: "Tolong siapkan buku sebelum jam 10 pagi"
+      responses:
+        "201":
+          description: Booking berhasil dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    example: "✅ Booking berhasil dibuat"
+                  autoEndDateUsed:
+                    type: boolean
+                    description: True jika tanggal akhir otomatis dihitung
+                    example: true
+                  booking:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: "bkg_67890"
+                      status:
+                        type: string
+                        example: "PENDING"
+                      notes:
+                        type: string
+                        example: "Tolong siapkan buku sebelum jam 10 pagi"
+                      createdAt:
+                        type: string
+                        format: date-time
+                        example: "2025-10-18T10:30:00.000Z"
+                      slot:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            example: "slt_321"
+                          startTime:
+                            type: string
+                            example: "2025-10-20T00:00:00.000Z"
+                          endTime:
+                            type: string
+                            example: "2025-10-23T00:00:00.000Z"
+                      service:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            example: "svc_12345"
+                          title:
+                            type: string
+                            example: "Buku Bumi - Tere Liye"
+                          durationDays:
+                            type: integer
+                            example: 3
+                          copies:
+                            type: integer
+                            example: 4
+        "400":
+          description: Bad request (validasi gagal atau konflik jadwal)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    example: "Buku sedang dipinjam pada tanggal tersebut, silakan pilih tanggal lain"
+        "403":
+          description: Akses ditolak (bukan USER)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    example: "Hanya user yang bisa melakukan booking"
+        "404":
+          description: Service tidak ditemukan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    example: "Buku tidak ditemukan"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    example: "Internal server error"
+
+  /api/v1/bookings:
+    get:
+      summary: Get list of bookings
+      description: >
+        Mengambil daftar booking berdasarkan peran pengguna.
+        - **USER:** hanya melihat booking miliknya sendiri
+        - **ADMIN:** dapat melihat semua booking beserta data user terkait
+        Query `status` opsional untuk memfilter berdasarkan status booking (`PENDING`, `CONFIRMED`, `CANCELED`, dll.)
+      tags: [Booking]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [PENDING, CONFIRMED, CANCELED, RESCHEDULED, COMPLETED]
+          description: Filter booking berdasarkan status
+          example: "PENDING"
+      responses:
+        "200":
+          description: Daftar booking berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    example: "Daftar booking berhasil diambil"
+                  count:
+                    type: integer
+                    example: 2
+                  bookings:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: "bkg_12345"
+                        status:
+                          type: string
+                          example: "PENDING"
+                        notes:
+                          type: string
+                          example: "Akan diambil sore hari"
+                        createdAt:
+                          type: string
+                          format: date-time
+                          example: "2025-10-18T12:34:56.000Z"
+                        user:
+                          type: object
+                          nullable: true
+                          description: Hanya muncul jika role = ADMIN
+                          properties:
+                            id:
+                              type: string
+                              example: "usr_123"
+                            name:
+                              type: string
+                              example: "Naruto Uzumaki"
+                            email:
+                              type: string
+                              example: "naruto@gmail.com"
+                        service:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              example: "svc_456"
+                            title:
+                              type: string
+                              example: "Novel Bumi - Tere Liye"
+                        slot:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              example: "slt_789"
+                            startTime:
+                              type: string
+                              example: "2025-10-20T08:00:00.000Z"
+                            endTime:
+                              type: string
+                              example: "2025-10-23T08:00:00.000Z"
+        "403":
+          description: Unauthorized access (belum login)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    example: "Akses ditolak"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    example: "Internal server error"
+
+  # /api/v1/admin/bookings:
+  #   get:
+  #     summary: Get all bookings (Admin only)
+  #     description: >
+  #       Mengambil semua data booking (khusus **ADMIN**).
+  #       Mendukung filter berdasarkan `status`, `userId`, `serviceId`, serta pagination (`page`, `limit`).
+  #       Hasil mencakup informasi `user`, `service`, dan `slot` terkait.
+  #     tags: [Booking]
+  #     security:
+  #       - cookieAuth: []
+  #     parameters:
+  #       - name: status
+  #         in: query
+  #         required: false
+  #         schema:
+  #           type: string
+  #           enum: [PENDING, CONFIRMED, CANCELED, RESCHEDULED, COMPLETED]
+  #         description: Filter booking berdasarkan status
+  #         example: "CONFIRMED"
+  #       - name: userId
+  #         in: query
+  #         required: false
+  #         schema:
+  #           type: string
+  #         description: Filter berdasarkan ID user
+  #         example: "usr_12345"
+  #       - name: serviceId
+  #         in: query
+  #         required: false
+  #         schema:
+  #           type: string
+  #         description: Filter berdasarkan ID service
+  #         example: "svc_78910"
+  #       - name: page
+  #         in: query
+  #         required: false
+  #         schema:
+  #           type: integer
+  #           default: 1
+  #         description: Halaman data yang ingin diambil
+  #         example: 1
+  #       - name: limit
+  #         in: query
+  #         required: false
+  #         schema:
+  #           type: integer
+  #           default: 10
+  #         description: Jumlah data per halaman
+  #         example: 10
+  #     responses:
+  #       "200":
+  #         description: Daftar semua booking berhasil diambil
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 message:
+  #                   example: "✅ Daftar semua booking berhasil diambil"
+  #                 pagination:
+  #                   type: object
+  #                   properties:
+  #                     totalData:
+  #                       type: integer
+  #                       example: 47
+  #                     currentPage:
+  #                       type: integer
+  #                       example: 2
+  #                     totalPages:
+  #                       type: integer
+  #                       example: 5
+  #                     limit:
+  #                       type: integer
+  #                       example: 10
+  #                     hasNextPage:
+  #                       type: boolean
+  #                       example: true
+  #                     hasPrevPage:
+  #                       type: boolean
+  #                       example: true
+  #                 data:
+  #                   type: array
+  #                   items:
+  #                     type: object
+  #                     properties:
+  #                       id:
+  #                         type: string
+  #                         example: "bkg_98765"
+  #                       status:
+  #                         type: string
+  #                         example: "CONFIRMED"
+  #                       notes:
+  #                         type: string
+  #                         example: "User ingin mengambil buku lebih cepat"
+  #                       createdAt:
+  #                         type: string
+  #                         format: date-time
+  #                         example: "2025-10-18T12:00:00.000Z"
+  #                       user:
+  #                         type: object
+  #                         properties:
+  #                           id: { type: string, example: "usr_12345" }
+  #                           name: { type: string, example: "Naruto Uzumaki" }
+  #                           email: { type: string, example: "naruto@gmail.com" }
+  #                           phone: { type: string, example: "+628123456789" }
+  #                           role: { type: string, example: "USER" }
+  #                       service:
+  #                         type: object
+  #                         properties:
+  #                           id: { type: string, example: "svc_78910" }
+  #                           title: { type: string, example: "Buku Hujan - Tere Liye" }
+  #                           author: { type: string, example: "Tere Liye" }
+  #                           genre: { type: string, example: "Fiksi" }
+  #                           durationDays: { type: integer, example: 3 }
+  #                           copies: { type: integer, example: 5 }
+  #                           provider:
+  #                             type: object
+  #                             properties:
+  #                               id: { type: string, example: "adm_001" }
+  #                               name: { type: string, example: "Admin Slotify" }
+  #                               email: { type: string, example: "admin@slotify.com" }
+  #                       slot:
+  #                         type: object
+  #                         properties:
+  #                           id: { type: string, example: "slt_456" }
+  #                           startTime: { type: string, example: "2025-10-20T08:00:00.000Z" }
+  #                           endTime: { type: string, example: "2025-10-23T08:00:00.000Z" }
+  #                           isBooked: { type: boolean, example: true }
+  #                           isCancelled: { type: boolean, example: false }
+  #       "403":
+  #         description: Akses ditolak (bukan admin)
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 message:
+  #                   example: "Akses ditolak: hanya admin yang dapat melihat semua booking"
+  #       "500":
+  #         description: Internal server error
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 message:
+  #                   example: "Internal server error"
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: user_token
+      description: JWT token stored in cookies for authenticated requests
